@@ -353,6 +353,11 @@
             window.open(generatedUrl.value, '_blank');
         }
 
+        // Generate Google Maps URL for a pin
+        function generateGoogleMapsUrl(lat, lng) {
+            return `https://www.google.com/maps?q=${lat},${lng}&ll=${lat},${lng}&z=15`;
+        }
+
         // AES-256 Encryption/Decryption functions
         function encryptData(data, password) {
             try {
@@ -525,11 +530,16 @@
             
             const marker = L.marker([pin.lat, pin.lng], { icon: customIcon }).addTo(map);
             
-            // Create popup with more details
+            // Create popup with more details including Google Maps link
+            const googleMapsUrl = generateGoogleMapsUrl(pin.lat, pin.lng);
             marker.bindPopup(`
                 <div class="p-2">
                     <h3 class="font-bold text-gray-800">${pin.label}</h3>
                     <p class="text-sm text-gray-600">${pin.lat.toFixed(6)}, ${pin.lng.toFixed(6)}</p>
+                    <a href="${googleMapsUrl}" target="_blank" class="text-blue-600 hover:text-blue-800 text-sm mt-2 inline-block">
+                        <i class="fas fa-external-link-alt mr-1"></i> Open in Google Maps
+                    </a>
+                    <br>
                     <button class="mt-2 text-red-600 text-sm hover:text-red-800 remove-pin" data-lat="${pin.lat}" data-lng="${pin.lng}">
                         Remove Pin
                     </button>
@@ -604,14 +614,18 @@
             noPinsMessage.classList.add('hidden');
             
             pins.forEach((pin, index) => {
+                const googleMapsUrl = generateGoogleMapsUrl(pin.lat, pin.lng);
                 const pinElement = document.createElement('div');
-                pinElement.className = 'flex justify-between items-center p-3 bg-gray-50 rounded-md';
+                pinElement.className = 'flex justify-between items-start p-3 bg-gray-50 rounded-md';
                 pinElement.innerHTML = `
-                    <div>
+                    <div class="flex-1">
                         <span class="font-medium text-gray-800">${pin.label}</span>
-                        <div class="text-sm text-gray-600">${pin.lat.toFixed(6)}, ${pin.lng.toFixed(6)}</div>
+                        <div class="text-sm text-gray-600 mb-1">${pin.lat.toFixed(6)}, ${pin.lng.toFixed(6)}</div>
+                        <a href="${googleMapsUrl}" target="_blank" class="text-blue-600 hover:text-blue-800 text-xs flex items-center">
+                            <i class="fas fa-external-link-alt mr-1"></i> Open in Google Maps
+                        </a>
                     </div>
-                    <button class="text-red-600 hover:text-red-800 remove-pin-list" data-lat="${pin.lat}" data-lng="${pin.lng}">
+                    <button class="text-red-600 hover:text-red-800 remove-pin-list ml-2 mt-1" data-lat="${pin.lat}" data-lng="${pin.lng}">
                         <i class="fas fa-times"></i>
                     </button>
                 `;
