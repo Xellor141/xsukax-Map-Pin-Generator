@@ -10,560 +10,382 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <style>
-        #map {
-            height: 400px;
-            z-index: 1;
-        }
-        #map:fullscreen {
-            width: 100vw;
-            height: 100vh;
-        }
-        .notification {
-            transition: all 0.3s ease;
-        }
-        .pin-marker {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #dc2626;
-            border: 2px solid white;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            font-weight: bold;
-            color: white;
-            font-size: 10px;
-            text-align: center;
-            overflow: hidden;
-        }
-        .pin-label {
-            position: absolute;
-            top: -20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: white;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 10px;
-            font-weight: bold;
-            white-space: nowrap;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-            border: 1px solid #e5e5e5;
-        }
-        .brand-gradient {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .fullscreen-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            z-index: 1000;
-            background: white;
-            border: none;
-            border-radius: 4px;
-            padding: 5px 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            cursor: pointer;
-        }
+        #map { height: 400px; z-index: 1; border: 1px solid #d1d5db; }
+        #map:fullscreen { width: 100vw; height: 100vh; }
+        .pin-marker { display: flex; align-items: center; justify-content: center; background: #0969da; border: 2px solid white; border-radius: 50%; width: 24px; height: 24px; box-shadow: 0 2px 5px rgba(0,0,0,0.15); font-weight: 600; color: white; font-size: 10px; }
+        .pin-label { position: absolute; top: -22px; left: 50%; transform: translateX(-50%); background: #24292f; color: white; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 500; white-space: nowrap; box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
+        .fullscreen-btn { position: absolute; top: 10px; right: 10px; z-index: 1000; background: white; border: 1px solid #d1d5db; border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 13px; }
+        .fullscreen-btn:hover { background: #f6f8fa; }
+        .modal-overlay { animation: fadeIn 0.2s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .modal-content { animation: slideUp 0.2s ease; }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .notification { position: fixed; top: 16px; right: 16px; z-index: 9999; animation: slideIn 0.3s ease; }
+        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
-    <div class="container mx-auto px-4 py-8">
-        <!-- Header -->
-        <header class="mb-8 text-center">
-            <h1 class="text-3xl font-bold text-gray-800 mb-2">
-                <span class="brand-gradient">xsukax</span> Map Pin Generator
-            </h1>
-            <p class="text-gray-600">Create and share custom map pins with visible labels</p>
+    <div class="max-w-7xl mx-auto px-4 py-6">
+        <header class="mb-6">
+            <h1 class="text-2xl font-semibold text-gray-900 mb-1">xsukax Map Pin Generator</h1>
+            <p class="text-sm text-gray-600">Create and share encrypted map pins with custom labels</p>
         </header>
 
-        <!-- Main Content -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <!-- Map Container -->
-            <div class="bg-white rounded-lg shadow-md overflow-hidden relative">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-white rounded-lg border border-gray-200 overflow-hidden relative">
                 <div id="map" class="w-full"></div>
-                <button id="toggleFullscreen" class="fullscreen-btn">
-                    <i class="fas fa-expand"></i> Fullscreen
-                </button>
-                <div class="p-4 border-t border-gray-200">
-                    <p class="text-sm text-gray-600">Click on the map to add a pin. Click on a pin to remove it.</p>
+                <button id="toggleFullscreen" class="fullscreen-btn"><i class="fas fa-expand"></i> Fullscreen</button>
+                <div class="p-3 border-t border-gray-200 bg-gray-50">
+                    <p class="text-xs text-gray-600">Click map to add pin • Click pin to remove</p>
                 </div>
             </div>
 
-            <!-- Controls and Pin List -->
-            <div class="space-y-6">
-                <!-- Action Buttons -->
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <h2 class="text-xl font-semibold text-gray-800 mb-4">Actions</h2>
-                    <div class="flex flex-wrap gap-4">
-                        <button id="generateUrl" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md transition-colors flex items-center">
-                            <i class="fas fa-link mr-2"></i> Generate Shareable URL
-                        </button>
-                        <button id="clearAll" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md transition-colors flex items-center">
-                            <i class="fas fa-trash-alt mr-2"></i> Clear All Pins
-                        </button>
+            <div class="space-y-4">
+                <div class="bg-white rounded-lg border border-gray-200 p-4">
+                    <h2 class="text-sm font-semibold text-gray-900 mb-3">Actions</h2>
+                    <div class="flex flex-wrap gap-2">
+                        <button id="generateUrl" class="bg-gray-900 hover:bg-gray-800 text-white text-sm px-3 py-1.5 rounded-md transition-colors"><i class="fas fa-link mr-1.5"></i>Generate URL</button>
+                        <button id="clearAll" class="bg-white hover:bg-gray-50 text-gray-900 text-sm px-3 py-1.5 rounded-md border border-gray-300 transition-colors"><i class="fas fa-trash-alt mr-1.5"></i>Clear All</button>
                     </div>
                 </div>
 
-                <!-- Pin List -->
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <h2 class="text-xl font-semibold text-gray-800 mb-4">Pins</h2>
-                    <div id="pinList" class="space-y-3 max-h-96 overflow-y-auto">
-                        <p class="text-gray-500 text-center py-4" id="noPinsMessage">No pins added yet. Click on the map to add pins.</p>
+                <div class="bg-white rounded-lg border border-gray-200 p-4">
+                    <h2 class="text-sm font-semibold text-gray-900 mb-3">Pins (<span id="pinCount">0</span>)</h2>
+                    <div id="pinList" class="space-y-2 max-h-96 overflow-y-auto">
+                        <p class="text-sm text-gray-500 text-center py-6" id="noPinsMessage">No pins yet</p>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Add Pin Modal -->
-    <div id="addPinModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
-            <div class="p-6">
-                <h3 class="text-xl font-semibold text-gray-800 mb-4">Add Pin Label</h3>
-                <input type="text" id="pinLabel" placeholder="Enter label for this pin" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
-                <div class="mt-6 flex justify-end space-x-3">
-                    <button id="cancelPin" class="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors">Cancel</button>
-                    <button id="savePin" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors">Save</button>
+    <div id="addPinModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 hidden modal-overlay">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 modal-content">
+            <div class="p-5">
+                <h3 class="text-base font-semibold text-gray-900 mb-3">Add Pin Label</h3>
+                <input type="text" id="pinLabel" placeholder="Enter label" maxlength="50" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <div class="mt-4 flex justify-end space-x-2">
+                    <button id="cancelPin" class="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors">Cancel</button>
+                    <button id="savePin" class="px-3 py-1.5 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors">Save</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Password Modal for Encryption -->
-    <div id="passwordModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
-            <div class="p-6">
-                <h3 class="text-xl font-semibold text-gray-800 mb-4">Set Encryption Password</h3>
-                <input type="password" id="encryptPassword" placeholder="Enter password for encryption" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 mb-4">
-                <input type="password" id="confirmPassword" placeholder="Confirm password" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
-                <div class="mt-6 flex justify-end space-x-3">
-                    <button id="cancelPassword" class="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors">Cancel</button>
-                    <button id="savePassword" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors">Encrypt & Generate URL</button>
+    <div id="passwordModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 hidden modal-overlay">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 modal-content">
+            <div class="p-5">
+                <h3 class="text-base font-semibold text-gray-900 mb-3">Set Encryption Password</h3>
+                <div class="mb-3">
+                    <input type="password" id="encryptPassword" placeholder="Password (min 8 characters)" minlength="8" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+                <div class="mb-3">
+                    <input type="password" id="confirmPassword" placeholder="Confirm password" minlength="8" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+                <div id="passwordError" class="hidden mb-3 p-2 bg-red-50 border border-red-200 rounded-md text-xs text-red-700"></div>
+                <div class="mt-4 flex justify-end space-x-2">
+                    <button id="cancelPassword" class="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors">Cancel</button>
+                    <button id="savePassword" class="px-3 py-1.5 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors">Encrypt & Generate</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Password Modal for Decryption -->
-    <div id="decryptModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
-            <div class="p-6">
-                <h3 class="text-xl font-semibold text-gray-800 mb-4">Enter Decryption Password</h3>
-                <input type="password" id="decryptPassword" placeholder="Enter password to decrypt pins" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
-                <div class="mt-6 flex justify-end space-x-3">
-                    <button id="cancelDecrypt" class="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors">Cancel</button>
-                    <button id="decryptPins" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors">Decrypt</button>
+    <div id="decryptModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 hidden modal-overlay">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 modal-content">
+            <div class="p-5">
+                <h3 class="text-base font-semibold text-gray-900 mb-3">Enter Password</h3>
+                <input type="password" id="decryptPassword" placeholder="Enter decryption password" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <div id="decryptError" class="hidden mt-3 p-2 bg-red-50 border border-red-200 rounded-md text-xs text-red-700"></div>
+                <div class="mt-4 flex justify-end space-x-2">
+                    <button id="cancelDecrypt" class="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors">Cancel</button>
+                    <button id="decryptPins" class="px-3 py-1.5 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors">Decrypt</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Generated URL Modal -->
-    <div id="urlModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4">
-            <div class="p-6">
-                <h3 class="text-xl font-semibold text-gray-800 mb-4">Shareable URL</h3>
-                <div class="mb-4">
-                    <input type="text" id="generatedUrl" readonly class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-sm">
+    <div id="urlModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 hidden modal-overlay">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 modal-content">
+            <div class="p-5">
+                <h3 class="text-base font-semibold text-gray-900 mb-3">Shareable URL</h3>
+                <div class="mb-3">
+                    <textarea id="generatedUrl" readonly rows="3" class="w-full px-3 py-2 text-xs border border-gray-300 rounded-md bg-gray-50 font-mono"></textarea>
                 </div>
-                <div class="flex justify-end space-x-3">
-                    <button id="closeModal" class="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors">Close</button>
-                    <button id="openUrl" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center">
-                        <i class="fas fa-external-link-alt mr-2"></i> Open URL
-                    </button>
-                    <button id="copyUrl" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors flex items-center">
-                        <i class="fas fa-copy mr-2"></i> Copy URL
-                    </button>
+                <div class="flex justify-end space-x-2">
+                    <button id="closeModal" class="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors">Close</button>
+                    <button id="openUrl" class="px-3 py-1.5 text-sm bg-white text-gray-900 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"><i class="fas fa-external-link-alt mr-1.5"></i>Open</button>
+                    <button id="copyUrl" class="px-3 py-1.5 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors"><i class="fas fa-copy mr-1.5"></i>Copy</button>
                 </div>
             </div>
         </div>
-    </div>
-
-    <!-- Notification -->
-    <div id="notification" class="fixed top-4 right-4 bg-green-600 text-white px-4 py-3 rounded-md shadow-lg notification hidden z-50">
-        <span id="notificationText">Copied to clipboard!</span>
     </div>
 
     <script>
-        // Initialize map
-        const map = L.map('map').setView([40.7128, -74.0060], 2); // Default to world view
-        
-        // Add OpenStreetMap tiles
+        const map = L.map('map').setView([20, 0], 2);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
-        // State management
         let pins = [];
         let currentPin = null;
         let markers = [];
 
-        // DOM Elements
-        const addPinModal = document.getElementById('addPinModal');
-        const passwordModal = document.getElementById('passwordModal');
-        const decryptModal = document.getElementById('decryptModal');
-        const urlModal = document.getElementById('urlModal');
-        const pinLabel = document.getElementById('pinLabel');
-        const savePin = document.getElementById('savePin');
-        const cancelPin = document.getElementById('cancelPin');
-        const encryptPassword = document.getElementById('encryptPassword');
-        const confirmPassword = document.getElementById('confirmPassword');
-        const savePassword = document.getElementById('savePassword');
-        const cancelPassword = document.getElementById('cancelPassword');
-        const decryptPassword = document.getElementById('decryptPassword');
-        const decryptPins = document.getElementById('decryptPins');
-        const cancelDecrypt = document.getElementById('cancelDecrypt');
-        const generatedUrl = document.getElementById('generatedUrl');
-        const closeModal = document.getElementById('closeModal');
-        const copyUrl = document.getElementById('copyUrl');
-        const openUrl = document.getElementById('openUrl');
-        const pinList = document.getElementById('pinList');
-        const noPinsMessage = document.getElementById('noPinsMessage');
-        const generateUrl = document.getElementById('generateUrl');
-        const clearAll = document.getElementById('clearAll');
-        const toggleFullscreen = document.getElementById('toggleFullscreen');
-        const notification = document.getElementById('notification');
-        const notificationText = document.getElementById('notificationText');
+        const els = {
+            addPinModal: document.getElementById('addPinModal'),
+            passwordModal: document.getElementById('passwordModal'),
+            decryptModal: document.getElementById('decryptModal'),
+            urlModal: document.getElementById('urlModal'),
+            pinLabel: document.getElementById('pinLabel'),
+            encryptPassword: document.getElementById('encryptPassword'),
+            confirmPassword: document.getElementById('confirmPassword'),
+            decryptPassword: document.getElementById('decryptPassword'),
+            generatedUrl: document.getElementById('generatedUrl'),
+            pinList: document.getElementById('pinList'),
+            noPinsMessage: document.getElementById('noPinsMessage'),
+            pinCount: document.getElementById('pinCount'),
+            passwordError: document.getElementById('passwordError'),
+            decryptError: document.getElementById('decryptError')
+        };
 
-        // Event Listeners
-        map.on('click', function(e) {
-            currentPin = {
-                lat: e.latlng.lat,
-                lng: e.latlng.lng,
-                label: ''
-            };
-            showAddPinModal();
+        map.on('click', e => {
+            currentPin = { lat: e.latlng.lat, lng: e.latlng.lng, label: '' };
+            els.pinLabel.value = '';
+            showModal('addPinModal');
+            els.pinLabel.focus();
         });
 
-        savePin.addEventListener('click', function() {
-            if (pinLabel.value.trim()) {
-                currentPin.label = pinLabel.value.trim();
+        document.getElementById('savePin').addEventListener('click', () => {
+            const label = els.pinLabel.value.trim();
+            if (label) {
+                currentPin.label = label;
                 addPin(currentPin);
-                hideAddPinModal();
+                hideModal('addPinModal');
+                els.pinLabel.value = '';
             }
         });
 
-        cancelPin.addEventListener('click', hideAddPinModal);
-        savePassword.addEventListener('click', generateEncryptedUrl);
-        cancelPassword.addEventListener('click', hidePasswordModal);
-        decryptPins.addEventListener('click', decryptPinsFromUrl);
-        cancelDecrypt.addEventListener('click', hideDecryptModal);
-        closeModal.addEventListener('click', hideUrlModal);
-        copyUrl.addEventListener('click', copyGeneratedUrl);
-        openUrl.addEventListener('click', openGeneratedUrl);
-        generateUrl.addEventListener('click', showPasswordModal);
-        clearAll.addEventListener('click', clearAllPins);
-        toggleFullscreen.addEventListener('click', toggleMapFullscreen);
+        document.getElementById('cancelPin').addEventListener('click', () => hideModal('addPinModal'));
+        
+        document.getElementById('savePassword').addEventListener('click', () => {
+            const pass = els.encryptPassword.value;
+            const confirm = els.confirmPassword.value;
+            
+            if (!pass || pass.length < 8) {
+                showError('passwordError', 'Password must be at least 8 characters');
+                return;
+            }
+            if (pass !== confirm) {
+                showError('passwordError', 'Passwords do not match');
+                return;
+            }
+            
+            generateEncryptedUrl(pass);
+        });
 
-        // Fullscreen functionality using the Fullscreen API
-        function toggleMapFullscreen() {
-            const mapElement = document.getElementById('map');
+        document.getElementById('cancelPassword').addEventListener('click', () => hideModal('passwordModal'));
+        
+        document.getElementById('decryptPins').addEventListener('click', () => {
+            const pass = els.decryptPassword.value;
+            if (!pass) {
+                showError('decryptError', 'Please enter a password');
+                return;
+            }
+            decryptPinsFromUrl(pass);
+        });
+
+        document.getElementById('cancelDecrypt').addEventListener('click', () => hideModal('decryptModal'));
+        document.getElementById('closeModal').addEventListener('click', () => hideModal('urlModal'));
+        
+        document.getElementById('copyUrl').addEventListener('click', () => {
+            els.generatedUrl.select();
+            document.execCommand('copy');
+            showNotification('URL copied to clipboard', 'success');
+        });
+
+        document.getElementById('openUrl').addEventListener('click', () => {
+            window.open(els.generatedUrl.value, '_blank');
+        });
+
+        document.getElementById('generateUrl').addEventListener('click', () => {
+            if (pins.length === 0) {
+                showNotification('Add at least one pin first', 'error');
+                return;
+            }
+            els.encryptPassword.value = '';
+            els.confirmPassword.value = '';
+            hideError('passwordError');
+            showModal('passwordModal');
+        });
+
+        document.getElementById('clearAll').addEventListener('click', clearAllPins);
+
+        document.getElementById('toggleFullscreen').addEventListener('click', () => {
+            const mapEl = document.getElementById('map');
+            const btn = document.getElementById('toggleFullscreen');
             
             if (!document.fullscreenElement) {
-                if (mapElement.requestFullscreen) {
-                    mapElement.requestFullscreen();
-                } else if (mapElement.webkitRequestFullscreen) {
-                    mapElement.webkitRequestFullscreen();
-                } else if (mapElement.msRequestFullscreen) {
-                    mapElement.msRequestFullscreen();
-                }
-                toggleFullscreen.innerHTML = '<i class="fas fa-compress"></i> Exit Fullscreen';
+                if (mapEl.requestFullscreen) mapEl.requestFullscreen();
+                else if (mapEl.webkitRequestFullscreen) mapEl.webkitRequestFullscreen();
+                else if (mapEl.msRequestFullscreen) mapEl.msRequestFullscreen();
+                btn.innerHTML = '<i class="fas fa-compress"></i> Exit';
             } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                } else if (document.webkitExitFullscreen) {
-                    document.webkitExitFullscreen();
-                } else if (document.msExitFullscreen) {
-                    document.msExitFullscreen();
-                }
-                toggleFullscreen.innerHTML = '<i class="fas fa-expand"></i> Fullscreen';
-            }
-        }
-
-        // Update fullscreen button when exiting via ESC key
-        document.addEventListener('fullscreenchange', function() {
-            if (!document.fullscreenElement) {
-                toggleFullscreen.innerHTML = '<i class="fas fa-expand"></i> Fullscreen';
+                if (document.exitFullscreen) document.exitFullscreen();
+                else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+                else if (document.msExitFullscreen) document.msExitFullscreen();
+                btn.innerHTML = '<i class="fas fa-expand"></i> Fullscreen';
             }
         });
 
-        // Functions
-        function showAddPinModal() {
-            pinLabel.value = '';
-            addPinModal.classList.remove('hidden');
-            pinLabel.focus();
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement) {
+                document.getElementById('toggleFullscreen').innerHTML = '<i class="fas fa-expand"></i> Fullscreen';
+            }
+        });
+
+        els.pinLabel.addEventListener('keypress', e => {
+            if (e.key === 'Enter') document.getElementById('savePin').click();
+        });
+
+        els.confirmPassword.addEventListener('keypress', e => {
+            if (e.key === 'Enter') document.getElementById('savePassword').click();
+        });
+
+        els.decryptPassword.addEventListener('keypress', e => {
+            if (e.key === 'Enter') document.getElementById('decryptPins').click();
+        });
+
+        function showModal(id) {
+            els[id].classList.remove('hidden');
         }
 
-        function hideAddPinModal() {
-            addPinModal.classList.add('hidden');
+        function hideModal(id) {
+            els[id].classList.add('hidden');
             currentPin = null;
         }
 
-        function showPasswordModal() {
-            if (pins.length === 0) {
-                showNotification('Please add at least one pin first');
-                return;
-            }
-            encryptPassword.value = '';
-            confirmPassword.value = '';
-            passwordModal.classList.remove('hidden');
+        function showError(id, msg) {
+            els[id].textContent = msg;
+            els[id].classList.remove('hidden');
         }
 
-        function hidePasswordModal() {
-            passwordModal.classList.add('hidden');
+        function hideError(id) {
+            els[id].classList.add('hidden');
         }
 
-        function showDecryptModal() {
-            decryptPassword.value = '';
-            decryptModal.classList.remove('hidden');
+        function showNotification(msg, type = 'success') {
+            const notif = document.createElement('div');
+            const bgColor = type === 'success' ? 'bg-green-600' : 'bg-red-600';
+            notif.className = `notification ${bgColor} text-white px-4 py-2 rounded-md shadow-lg text-sm`;
+            notif.textContent = msg;
+            document.body.appendChild(notif);
+            setTimeout(() => notif.remove(), 3000);
         }
 
-        function hideDecryptModal() {
-            decryptModal.classList.add('hidden');
-        }
-
-        function showUrlModal(url) {
-            generatedUrl.value = url;
-            urlModal.classList.remove('hidden');
-        }
-
-        function hideUrlModal() {
-            urlModal.classList.add('hidden');
-        }
-
-        function showNotification(message) {
-            notificationText.textContent = message;
-            notification.classList.remove('hidden');
-            setTimeout(() => {
-                notification.classList.add('hidden');
-            }, 3000);
-        }
-
-        function copyGeneratedUrl() {
-            generatedUrl.select();
-            document.execCommand('copy');
-            showNotification('Copied to clipboard!');
-        }
-
-        function openGeneratedUrl() {
-            window.open(generatedUrl.value, '_blank');
-        }
-
-        // Generate Google Maps URL for a pin
-        function generateGoogleMapsUrl(lat, lng) {
-            return `https://www.google.com/maps?q=${lat},${lng}&ll=${lat},${lng}&z=15`;
-        }
-
-        // AES-256 Encryption/Decryption functions
         function encryptData(data, password) {
             try {
-                // Generate a random salt
-                const salt = CryptoJS.lib.WordArray.random(128/8);
-                
-                // Derive key using PBKDF2
-                const key = CryptoJS.PBKDF2(password, salt, {
-                    keySize: 256/32,
-                    iterations: 1000
-                });
-                
-                // Generate random IV
-                const iv = CryptoJS.lib.WordArray.random(128/8);
-                
-                // Encrypt the data
-                const encrypted = CryptoJS.AES.encrypt(data, key, {
-                    iv: iv,
-                    mode: CryptoJS.mode.CBC,
-                    padding: CryptoJS.pad.Pkcs7
-                });
-                
-                // Combine salt + iv + ciphertext
-                const combined = salt.toString() + iv.toString() + encrypted.toString();
-                
-                // Return base64 encoded
-                return CryptoJS.enc.Base64.stringify(CryptoJS.enc.Utf8.parse(combined));
-            } catch (error) {
-                console.error('Encryption error:', error);
-                showNotification('Encryption failed');
+                const salt = CryptoJS.lib.WordArray.random(16);
+                const key = CryptoJS.PBKDF2(password, salt, { keySize: 8, iterations: 10000 });
+                const iv = CryptoJS.lib.WordArray.random(16);
+                const encrypted = CryptoJS.AES.encrypt(data, key, { iv: iv, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 });
+                return CryptoJS.enc.Base64.stringify(CryptoJS.enc.Utf8.parse(salt.toString() + iv.toString() + encrypted.toString()));
+            } catch (e) {
+                console.error('Encryption failed:', e);
                 return null;
             }
         }
 
         function decryptData(encryptedData, password) {
             try {
-                // Decode from base64
                 const combined = CryptoJS.enc.Base64.parse(encryptedData).toString(CryptoJS.enc.Utf8);
-                
-                // Extract salt (first 16 bytes)
                 const salt = CryptoJS.enc.Hex.parse(combined.substring(0, 32));
-                
-                // Extract IV (next 16 bytes)
                 const iv = CryptoJS.enc.Hex.parse(combined.substring(32, 64));
-                
-                // Extract ciphertext (the rest)
                 const ciphertext = combined.substring(64);
-                
-                // Derive key using PBKDF2
-                const key = CryptoJS.PBKDF2(password, salt, {
-                    keySize: 256/32,
-                    iterations: 1000
-                });
-                
-                // Decrypt
-                const decrypted = CryptoJS.AES.decrypt(ciphertext, key, {
-                    iv: iv,
-                    mode: CryptoJS.mode.CBC,
-                    padding: CryptoJS.pad.Pkcs7
-                });
-                
+                const key = CryptoJS.PBKDF2(password, salt, { keySize: 8, iterations: 10000 });
+                const decrypted = CryptoJS.AES.decrypt(ciphertext, key, { iv: iv, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 });
                 return decrypted.toString(CryptoJS.enc.Utf8);
-            } catch (error) {
-                console.error('Decryption error:', error);
-                showNotification('Decryption failed - wrong password?');
+            } catch (e) {
+                console.error('Decryption failed:', e);
                 return null;
             }
         }
 
-        function generateEncryptedUrl() {
-            const password = encryptPassword.value;
-            const confirm = confirmPassword.value;
+        function generateEncryptedUrl(password) {
+            const data = pins.map(p => ({ l: p.label, lat: p.lat, lng: p.lng }));
+            const encrypted = encryptData(JSON.stringify(data), password);
             
-            if (!password) {
-                showNotification('Please enter a password');
+            if (!encrypted) {
+                showError('passwordError', 'Encryption failed');
                 return;
             }
             
-            if (password !== confirm) {
-                showNotification('Passwords do not match');
-                return;
-            }
-            
-            // Create a simple object to encode
-            const pinData = pins.map(pin => ({
-                l: pin.label,
-                lat: pin.lat,
-                lng: pin.lng
-            }));
-            
-            // Convert to JSON
-            const jsonString = JSON.stringify(pinData);
-            
-            // Encrypt with AES-256
-            const encryptedData = encryptData(jsonString, password);
-            
-            if (!encryptedData) return;
-            
-            const currentUrl = window.location.href.split('?')[0];
-            const shareableUrl = `${currentUrl}?encrypted=${encodeURIComponent(encryptedData)}`;
-            
-            hidePasswordModal();
-            showUrlModal(shareableUrl);
+            const url = `${window.location.href.split('?')[0]}?d=${encodeURIComponent(encrypted)}`;
+            hideModal('passwordModal');
+            els.generatedUrl.value = url;
+            showModal('urlModal');
         }
 
-        function decryptPinsFromUrl() {
-            const password = decryptPassword.value;
+        function decryptPinsFromUrl(password) {
+            const params = new URLSearchParams(window.location.search);
+            const encrypted = params.get('d');
             
-            if (!password) {
-                showNotification('Please enter a password');
+            if (!encrypted) {
+                showError('decryptError', 'No encrypted data in URL');
                 return;
             }
             
-            const urlParams = new URLSearchParams(window.location.search);
-            const encryptedData = urlParams.get('encrypted');
+            const decrypted = decryptData(encrypted, password);
             
-            if (!encryptedData) {
-                showNotification('No encrypted data found in URL');
-                return;
-            }
-            
-            // Decrypt the data
-            const decryptedJson = decryptData(encryptedData, password);
-            
-            if (!decryptedJson) {
+            if (!decrypted) {
+                showError('decryptError', 'Wrong password or corrupted data');
                 return;
             }
             
             try {
-                const pinData = JSON.parse(decryptedJson);
-                
-                // Clear existing pins
+                const data = JSON.parse(decrypted);
                 clearAllPins();
-                
-                // Add decrypted pins
-                pinData.forEach(pin => {
-                    addPin({
-                        label: pin.l,
-                        lat: pin.lat,
-                        lng: pin.lng
-                    });
-                });
-                
-                // Fit map to show all loaded pins
+                data.forEach(p => addPin({ label: p.l, lat: p.lat, lng: p.lng }));
                 fitMapToPins();
-                
-                hideDecryptModal();
-                showNotification('Pins successfully decrypted and loaded');
-            } catch (error) {
-                console.error('Error parsing decrypted data:', error);
-                showNotification('Error loading pins - invalid data');
+                hideModal('decryptModal');
+                showNotification('Pins decrypted successfully', 'success');
+            } catch (e) {
+                showError('decryptError', 'Invalid data format');
             }
         }
 
         function addPin(pin) {
             pins.push(pin);
             
-            // Create custom marker with label
-            const customIcon = L.divIcon({
+            const icon = L.divIcon({
                 className: 'custom-pin',
-                html: `
-                    <div class="relative">
-                        <div class="pin-marker">${pin.label.charAt(0).toUpperCase()}</div>
-                        <div class="pin-label">${pin.label}</div>
-                    </div>
-                `,
+                html: `<div class="relative"><div class="pin-marker">${pins.length}</div><div class="pin-label">${pin.label}</div></div>`,
                 iconSize: [24, 24],
                 iconAnchor: [12, 12]
             });
             
-            const marker = L.marker([pin.lat, pin.lng], { icon: customIcon }).addTo(map);
+            const marker = L.marker([pin.lat, pin.lng], { icon }).addTo(map);
+            const mapsUrl = `https://www.google.com/maps?q=${pin.lat},${pin.lng}`;
             
-            // Create popup with more details including Google Maps link
-            const googleMapsUrl = generateGoogleMapsUrl(pin.lat, pin.lng);
             marker.bindPopup(`
                 <div class="p-2">
-                    <h3 class="font-bold text-gray-800">${pin.label}</h3>
-                    <p class="text-sm text-gray-600">${pin.lat.toFixed(6)}, ${pin.lng.toFixed(6)}</p>
-                    <a href="${googleMapsUrl}" target="_blank" class="text-blue-600 hover:text-blue-800 text-sm mt-2 inline-block">
-                        <i class="fas fa-external-link-alt mr-1"></i> Open in Google Maps
-                    </a>
-                    <br>
-                    <button class="mt-2 text-red-600 text-sm hover:text-red-800 remove-pin" data-lat="${pin.lat}" data-lng="${pin.lng}">
-                        Remove Pin
-                    </button>
+                    <h3 class="font-semibold text-sm text-gray-900">${pin.label}</h3>
+                    <p class="text-xs text-gray-600 mt-1">${pin.lat.toFixed(6)}, ${pin.lng.toFixed(6)}</p>
+                    <a href="${mapsUrl}" target="_blank" class="text-blue-600 hover:text-blue-800 text-xs mt-2 inline-block"><i class="fas fa-external-link-alt mr-1"></i>Google Maps</a>
+                    <br><button class="mt-2 text-red-600 text-xs hover:text-red-800 remove-pin" data-lat="${pin.lat}" data-lng="${pin.lng}">Remove Pin</button>
                 </div>
             `);
             
-            // Add click event to remove pin
-            marker.on('popupopen', function() {
+            marker.on('popupopen', () => {
                 document.querySelector('.remove-pin').addEventListener('click', function() {
-                    const lat = parseFloat(this.getAttribute('data-lat'));
-                    const lng = parseFloat(this.getAttribute('data-lng'));
-                    removePin(lat, lng);
-                    map.removeLayer(marker);
+                    removePin(parseFloat(this.dataset.lat), parseFloat(this.dataset.lng));
                 });
             });
             
             markers.push(marker);
             
-            // Adjust map view to include all pins
             if (pins.length === 1) {
-                // If it's the first pin, center on it
                 map.setView([pin.lat, pin.lng], 10);
             } else {
-                // Otherwise, fit to show all pins
                 fitMapToPins();
             }
             
@@ -572,87 +394,70 @@
 
         function fitMapToPins() {
             if (markers.length === 0) return;
-            
             const group = new L.featureGroup(markers);
             map.fitBounds(group.getBounds(), { padding: [20, 20] });
         }
 
         function removePin(lat, lng) {
-            const index = pins.findIndex(pin => 
-                pin.lat === lat && pin.lng === lng
-            );
-            
-            if (index !== -1) {
-                pins.splice(index, 1);
-                map.removeLayer(markers[index]);
-                markers.splice(index, 1);
-                
-                // Adjust map view if pins remain
-                if (pins.length > 0) {
-                    fitMapToPins();
-                }
-                
+            const idx = pins.findIndex(p => p.lat === lat && p.lng === lng);
+            if (idx !== -1) {
+                pins.splice(idx, 1);
+                map.removeLayer(markers[idx]);
+                markers.splice(idx, 1);
+                if (pins.length > 0) fitMapToPins();
                 updatePinList();
             }
         }
 
         function clearAllPins() {
             pins = [];
-            markers.forEach(marker => map.removeLayer(marker));
+            markers.forEach(m => map.removeLayer(m));
             markers = [];
             updatePinList();
         }
 
         function updatePinList() {
-            pinList.innerHTML = '';
+            els.pinCount.textContent = pins.length;
+            els.pinList.innerHTML = '';
             
             if (pins.length === 0) {
-                noPinsMessage.classList.remove('hidden');
+                els.noPinsMessage.classList.remove('hidden');
                 return;
             }
             
-            noPinsMessage.classList.add('hidden');
+            els.noPinsMessage.classList.add('hidden');
             
-            pins.forEach((pin, index) => {
-                const googleMapsUrl = generateGoogleMapsUrl(pin.lat, pin.lng);
-                const pinElement = document.createElement('div');
-                pinElement.className = 'flex justify-between items-start p-3 bg-gray-50 rounded-md';
-                pinElement.innerHTML = `
-                    <div class="flex-1">
-                        <span class="font-medium text-gray-800">${pin.label}</span>
-                        <div class="text-sm text-gray-600 mb-1">${pin.lat.toFixed(6)}, ${pin.lng.toFixed(6)}</div>
-                        <a href="${googleMapsUrl}" target="_blank" class="text-blue-600 hover:text-blue-800 text-xs flex items-center">
-                            <i class="fas fa-external-link-alt mr-1"></i> Open in Google Maps
-                        </a>
+            pins.forEach(pin => {
+                const mapsUrl = `https://www.google.com/maps?q=${pin.lat},${pin.lng}`;
+                const el = document.createElement('div');
+                el.className = 'flex justify-between items-start p-2 bg-gray-50 rounded-md border border-gray-200';
+                el.innerHTML = `
+                    <div class="flex-1 min-w-0">
+                        <span class="font-medium text-sm text-gray-900 block truncate">${pin.label}</span>
+                        <div class="text-xs text-gray-600 mt-0.5">${pin.lat.toFixed(6)}, ${pin.lng.toFixed(6)}</div>
+                        <a href="${mapsUrl}" target="_blank" class="text-blue-600 hover:text-blue-800 text-xs inline-flex items-center mt-1"><i class="fas fa-external-link-alt mr-1"></i>Maps</a>
                     </div>
-                    <button class="text-red-600 hover:text-red-800 remove-pin-list ml-2 mt-1" data-lat="${pin.lat}" data-lng="${pin.lng}">
-                        <i class="fas fa-times"></i>
-                    </button>
+                    <button class="text-gray-400 hover:text-red-600 ml-2 remove-pin-list" data-lat="${pin.lat}" data-lng="${pin.lng}"><i class="fas fa-times"></i></button>
                 `;
-                pinList.appendChild(pinElement);
+                els.pinList.appendChild(el);
             });
             
-            // Add event listeners to remove buttons
-            document.querySelectorAll('.remove-pin-list').forEach(button => {
-                button.addEventListener('click', function() {
-                    const lat = parseFloat(this.getAttribute('data-lat'));
-                    const lng = parseFloat(this.getAttribute('data-lng'));
-                    removePin(lat, lng);
+            document.querySelectorAll('.remove-pin-list').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    removePin(parseFloat(this.dataset.lat), parseFloat(this.dataset.lng));
                 });
             });
         }
 
         function loadPinsFromUrl() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const encryptedData = urlParams.get('encrypted');
-            
-            if (encryptedData) {
-                // Show decryption modal if encrypted data is found
-                showDecryptModal();
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('d')) {
+                hideError('decryptError');
+                showModal('decryptModal');
+                els.decryptPassword.focus();
             }
         }
 
-        // Initialize
         updatePinList();
         loadPinsFromUrl();
     </script>
